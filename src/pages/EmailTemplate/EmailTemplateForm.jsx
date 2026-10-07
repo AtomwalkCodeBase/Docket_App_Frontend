@@ -1,5 +1,4 @@
 import React from "react";
-import { emailTypeMap } from "./EmailTemplate.jsx";
 import styles from "./EmailTemplate.module.css";
 
 

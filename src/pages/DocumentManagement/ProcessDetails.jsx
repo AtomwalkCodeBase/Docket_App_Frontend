@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import styles from "./DocumentManagement.module.css";
 import { Toolbar, DataTable, Breadcrumbs, DetailField } from "./ProcessList";
+import { FiArrowLeft } from "react-icons/fi";
+import Button from "../../components/common/Button";
 
 import {
     getProcessList,
@@ -11,11 +13,6 @@ import {
 export default function ProcessDetails({ onBack, onOpenDocuments, onOpenEmailTemplate }) {
   const { processId } = useParams();
   const location = useLocation();
-
-  // The process object is passed via navigation state when the user comes
-  // from the Process List (fast path, no refetch). If it's missing — e.g.
-  // a direct link or a page refresh — fall back to the full list and find
-  // the matching row, since there is no "get single process" endpoint.
   const [process, setProcess] = useState(location.state?.process || null);
   const [activityList, setActivityList] = useState([]);
   const [search, setSearch] = useState("");
@@ -68,20 +65,18 @@ export default function ProcessDetails({ onBack, onOpenDocuments, onOpenEmailTem
       label: "Action",
       render: (row) => (
         <div className={styles.rowActions}>
-          <button
-            type="button"
-            className={styles.linkButton}
+          <Button
+            variant="view"
             onClick={() => onOpenDocuments(resolvedProcess, row)}
           >
             Documents
-          </button>
-          <button
-          type="button"
-          className={styles.linkButton}
-          onClick={() => onOpenEmailTemplate(resolvedProcess, row)}
-        >
-          {row.mail_template_name ? "Edit Template" : "Add Template"}
-        </button>
+          </Button>
+          <Button
+            variant={row.mail_template_name ? "edit" : "add"}
+            onClick={() => onOpenEmailTemplate(resolvedProcess, row)}
+          >
+            {row.mail_template_name ? "Edit Template" : "Add Template"}
+          </Button>
         </div>
       ),
     },
@@ -92,13 +87,13 @@ export default function ProcessDetails({ onBack, onOpenDocuments, onOpenEmailTem
       <div style={{ display: "flex",
     justifyContent: "flex-end",
     marginBottom: 14, }}>
-        <button
-          type="button"
-          className={styles.backButton}
+        <Button
+          variant="back"
+          icon={<FiArrowLeft size={14} />}
           onClick={onBack}
         >
-          ← Back to Process List
-        </button>
+          Back to Process List
+        </Button>
       </div>
       <Breadcrumbs
         items={[

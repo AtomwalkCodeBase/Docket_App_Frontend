@@ -1,5 +1,3 @@
-
-
 const MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
   jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
@@ -234,4 +232,109 @@ export function filterRecords(records, filters) {
     }
     return true;
   });
+}
+
+export function todayISO() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function daysAgoISO(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function getInvoiceDateError(iso) {
+  if (!iso) return "Select a reimbursement date.";
+  if (iso > todayISO()) return "Reimbursement date cannot be in the future.";
+  return undefined;
+}
+
+const OLD_DATE_WARNING = "You are selecting a date from more than 5 days ago. Please choose carefully.";
+
+export function getInvoiceDateWarning(iso) {
+  if (!iso || getInvoiceDateError(iso)) return "";
+  return iso < daysAgoISO(5) ? OLD_DATE_WARNING : "";
+}
+
+export function isoToDDMMYYYY(iso) {
+  if (!iso) return "";
+  const [yyyy, mm, dd] = iso.split("-");
+  if (!yyyy || !mm || !dd) return "";
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+export function normalizeListResponse(res) {
+  const data = res?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
+export function getProductLabel(p) {
+  return p?.product_name || p?.name || p?.title || (p?.id !== undefined ? `Product #${p.id}` : "Unnamed product");
+}
+
+export function getProductPriceHint(p) {
+  const raw = p?.price ?? p?.sale_price ?? p?.selling_price ?? p?.unit_price ?? p?.rate;
+  if (raw === undefined || raw === null || raw === "") return "";
+  const num = Number(raw);
+  return Number.isFinite(num) ? String(num) : "";
+}
+
+export function extractApiError(err, fallback) {
+  const data = err?.response?.data;
+  if (typeof data === "string" && data.trim()) return data;
+  if (data?.detail) return data.detail;
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+  if (data && typeof data === "object") {
+    const firstKey = Object.keys(data)[0];
+    const firstVal = firstKey ? data[firstKey] : null;
+    if (Array.isArray(firstVal) && firstVal.length) return String(firstVal[0]);
+    if (typeof firstVal === "string") return firstVal;
+  }
+  return err?.message || fallback;
+}
+
+export const MAX_QTY_DIGITS = 4;
+const MAX_PRICE_INT_DIGITS = 10;
+const MAX_PRICE_DECIMALS = 2;
+
+export const sanitizeQuantity = (value) => String(value).replace(/\D/g, "").slice(0, MAX_QTY_DIGITS);
+
+export const sanitizePrice = (value) => {
+  const cleaned = String(value).replace(/[^\d.]/g, "");
+  const [intRaw = "", ...rest] = cleaned.split(".");
+  const intPart = intRaw.slice(0, MAX_PRICE_INT_DIGITS);
+  if (rest.length === 0) return intPart;
+  return `${intPart}.${rest.join("").slice(0, MAX_PRICE_DECIMALS)}`;
+};
+
+export function getQuantityError(value) {
+  const n = Number(value);
+  if (value === "" || value === null || value === undefined || !Number.isFinite(n) || n <= 0) {
+    return "Quantity must be greater than 0.";
+  }
+  if (!Number.isInteger(n)) return "Quantity must be a whole number.";
+  if (String(value).length > MAX_QTY_DIGITS) return `Quantity can have at most ${MAX_QTY_DIGITS} digits.`;
+  return undefined;
+}
+
+export function getPriceError(value) {
+  const n = Number(value);
+  if (value === "" || value === null || value === undefined || !Number.isFinite(n) || n <= 0) {
+    return "Price must be greater than 0.";
+  }
+  const [intPart] = String(value).split(".");
+  if (intPart.length > MAX_PRICE_INT_DIGITS) return `Price can have at most ${MAX_PRICE_INT_DIGITS} digits.`;
+  return undefined;
 }

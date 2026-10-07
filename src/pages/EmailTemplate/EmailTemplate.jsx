@@ -3,7 +3,8 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify"
 import styles from "./EmailTemplate.module.css";
 import EmailTemplateForm from "./EmailTemplateForm";
-import { FaArrowLeft, FaCheck, FaExclamationTriangle, FaTimes, } from "react-icons/fa";
+import Button from "../../components/common/Button";
+import { FaArrowLeft } from "react-icons/fa";
 import { getActivityEmailList, processActivityEmail } from "../../services/productServices";
 
 
@@ -74,47 +75,14 @@ function ConfirmDialog({ open, title, message, onConfirm, onCancel }) {
         <h2 className={styles.modalTitle}>{title}</h2>
         <p className={styles.modalMessage}>{message}</p>
         <div className={styles.modalActions}>
-          <button type="button" className={styles.secondaryButton} onClick={onCancel}>
+          <Button variant="cancel" onClick={onCancel}>
             Cancel
-          </button>
-          <button type="button" className={styles.primaryButton} onClick={onConfirm}>
+          </Button>
+          <Button variant="save" onClick={onConfirm}>
             Confirm
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** Reusable toast notification, auto-dismisses after a few seconds. */
-function Toast({ toast, onDismiss }) {
-  useEffect(() => {
-    if (!toast) return undefined;
-    const timer = setTimeout(onDismiss, 3200);
-    return () => clearTimeout(timer);
-  }, [toast, onDismiss]);
-
-  if (!toast) return null;
-  const isError = toast.type === "error";
-
-  return (
-    <div className={`${styles.toast} ${isError ? styles.toastError : styles.toastSuccess}`}>
-      <span aria-hidden="true">
-        {isError ? (
-          <FaExclamationTriangle size={14} />
-        ) : (
-          <FaCheck size={14} />
-        )}
-      </span>
-      <span className={styles.toastMessage}>{toast.message}</span>
-      <button
-        type="button"
-        className={styles.toastClose}
-        onClick={onDismiss}
-        aria-label="Dismiss notification"
-      >
-        <FaTimes size={14} />
-      </button>
     </div>
   );
 }
@@ -340,7 +308,7 @@ export default function EmailTemplate() {
     }
 
     processActivityEmail(payload)
-      .then((res) => {
+      .then(() => {
 
           toast.success(
             callMode === "LINK"
@@ -404,10 +372,13 @@ export default function EmailTemplate() {
       </div>
 
       <div className={styles.breadcrumb}>
-        <button type="button" className={styles.linkButton} onClick={handleBack}>
-          <span aria-hidden="true"><FaArrowLeft size={14} /></span>
+        <Button
+          variant="back"
+          icon={<span aria-hidden="true"><FaArrowLeft size={14} /></span>}
+          onClick={handleBack}
+        >
           Back to Activity
-        </button>
+        </Button>
       </div>
       </div>
 
@@ -419,9 +390,9 @@ export default function EmailTemplate() {
               <p className={styles.infoStateSub}>
                 Please open Email Template from the Process Activity list.
               </p>
-              <button type="button" className={styles.secondaryButton} onClick={handleBack}>
+              <Button variant="back" onClick={handleBack}>
                 Go Back
-              </button>
+              </Button>
             </div>
           ) : loading ? (
             <p className={styles.loadingText}>Loading email template...</p>

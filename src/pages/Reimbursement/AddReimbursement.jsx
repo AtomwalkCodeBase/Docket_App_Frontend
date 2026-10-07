@@ -6,8 +6,6 @@ import {
   FiArrowLeft,
   FiX,
   FiPlus,
-  FiTrash2,
-  FiEdit2,
   FiAlertCircle,
   FiUser,
   FiPackage,
@@ -18,13 +16,28 @@ import {
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import ConfirmReimbursementModal, {
   PrimaryBtn,
-  RemarkCell,
   SecondaryBtn,
   SectionIconCircle,
   SpinIcon,
 } from "../../components/modal/ConfirmReimbursementModal";
 import { getCustomerListView, getProductList, createReimbursementOrder } from "../../services/productServices";
-import { formatCurrency } from "../../utils/reimbursementUtils";
+import {
+  formatCurrency,
+  todayISO,
+  getInvoiceDateError,
+  getInvoiceDateWarning,
+  isoToDDMMYYYY,
+  normalizeListResponse,
+  getProductLabel,
+  getProductPriceHint,
+  extractApiError,
+  MAX_QTY_DIGITS,
+  sanitizeQuantity,
+  sanitizePrice,
+  getQuantityError,
+  getPriceError,
+} from "../../utils/reimbursementUtils";
+import ReimbursementItems from "../../components/reimbursement/ReimbursementItems";
 
 const PageHeader = styled.div`
   display: flex;
@@ -33,7 +46,7 @@ const PageHeader = styled.div`
   gap: 16px;
   max-width: 1180px;
   width: 100%;
-  margin: 0 auto 16px;
+  margin: 10px auto 16px;
 
   @media (max-width: 560px) {
     flex-direction: column;
@@ -74,7 +87,7 @@ const BackBtn = styled.button`
 
 const Title = styled.h1`
   font-family: var(--rf-font-serif, "IBM Plex Serif", Georgia, serif);
-  font-size: 29px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--rf-ink);
   margin: 0 0 2px;
@@ -484,204 +497,6 @@ const AddItemBtn = styled.button`
   }
 `;
 
-const ItemsWrap = styled.div`
-  border: 1px solid var(--rf-line);
-  border-radius: var(--rf-radius-sm);
-  overflow: auto;
-  max-height: 320px;
-`;
-
-const ItemsTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13.5px;
-  min-width: 880px;
-
-  thead th {
-    position: sticky;
-    top: 0;
-    background: var(--rf-paper);
-    text-align: left;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--rf-ink-soft);
-    padding: 11px 14px;
-    border-bottom: 2px solid var(--rf-line-strong);
-    white-space: nowrap;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  thead th.rf-num {
-    text-align: right;
-  }
-
-  thead th.rf-col-qty {
-    width: 120px;
-  }
-
-  thead th.rf-col-price {
-    width: 150px;
-  }
-
-  thead th.rf-col-remark {
-    min-width: 200px;
-  }
-
-  thead th.rf-actions {
-    width: 150px;
-    text-align: center;
-  }
-
-  tbody td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--rf-line);
-    color: var(--rf-ink-soft);
-  }
-
-  tbody td.rf-num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  tbody td.rf-actions {
-    text-align: center;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  tbody tr {
-    transition: background-color 0.12s ease;
-  }
-
-  tbody tr:hover {
-    background: var(--rf-paper);
-  }
-
-  tbody tr.rf-editing {
-    background: var(--rf-paper);
-  }
-
-  tbody tr.rf-editing td {
-    vertical-align: top;
-  }
-`;
-
-const RemoveBtn = styled.button`
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--rf-rust);
-  cursor: pointer;
-  padding: 6px;
-  border-radius: var(--rf-radius-sm);
-  display: inline-flex;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--rf-rust-soft);
-    border-color: var(--rf-rust);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const EditBtn = styled(RemoveBtn)`
-  color: var(--rf-brass-dark);
-
-  &:hover:not(:disabled) {
-    background: var(--rf-brass-soft);
-    border-color: var(--rf-brass);
-  }
-`;
-
-const ActionGroup = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-`;
-
-const CellStatic = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: ${({ $right }) => ($right ? "flex-end" : "flex-start")};
-  min-height: 38px;
-`;
-
-const CellInput = styled.input`
-  ${textControl}
-  height: 38px;
-  padding: 0 10px;
-  font-size: 13.5px;
-  text-align: ${({ $right }) => ($right ? "right" : "left")};
-`;
-
-const CellError = styled(ErrorText)`
-  display: block;
-  margin-top: 4px;
-  text-align: left;
-  line-height: 1.4;
-`;
-
-const InlineSaveBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 34px;
-  padding: 0 11px;
-  border-radius: var(--rf-radius-sm);
-  border: 1px solid transparent;
-  background: var(--rf-brass);
-  color: #fff;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  box-sizing: border-box;
-  transition: background-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--rf-brass-dark);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const InlineCancelBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 34px;
-  padding: 0 11px;
-  border-radius: var(--rf-radius-sm);
-  border: 1px solid var(--rf-line);
-  background: var(--rf-surface);
-  color: var(--rf-ink);
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  box-sizing: border-box;
-  transition: background-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--rf-paper);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
 const ActionBar = styled.div`
   display: flex;
   align-items: center;
@@ -728,112 +543,7 @@ const FootActions = styled.div`
   }
 `;
 
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function daysAgoISO(days) {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function getInvoiceDateError(iso) {
-  if (!iso) return "Select a reimbursement date.";
-  if (iso > todayISO()) return "Reimbursement date cannot be in the future.";
-  return undefined;
-}
-
-const OLD_DATE_WARNING = "You are selecting a date from more than 5 days ago. Please choose carefully.";
-
-function getInvoiceDateWarning(iso) {
-  if (!iso || getInvoiceDateError(iso)) return "";
-  return iso < daysAgoISO(5) ? OLD_DATE_WARNING : "";
-}
-
-function isoToDDMMYYYY(iso) {
-  if (!iso) return "";
-  const [yyyy, mm, dd] = iso.split("-");
-  if (!yyyy || !mm || !dd) return "";
-  return `${dd}-${mm}-${yyyy}`;
-}
-
-function normalizeListResponse(res) {
-  const data = res?.data;
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-}
-
-function getProductLabel(p) {
-  return p?.product_name || p?.name || p?.title || (p?.id !== undefined ? `Product #${p.id}` : "Unnamed product");
-}
-
-function getProductPriceHint(p) {
-  const raw = p?.price ?? p?.sale_price ?? p?.selling_price ?? p?.unit_price ?? p?.rate;
-  if (raw === undefined || raw === null || raw === "") return "";
-  const num = Number(raw);
-  return Number.isFinite(num) ? String(num) : "";
-}
-
-function extractApiError(err, fallback) {
-  const data = err?.response?.data;
-  if (typeof data === "string" && data.trim()) return data;
-  if (data?.detail) return data.detail;
-  if (data?.error) return data.error;
-  if (data?.message) return data.message;
-  if (data && typeof data === "object") {
-    const firstKey = Object.keys(data)[0];
-    const firstVal = firstKey ? data[firstKey] : null;
-    if (Array.isArray(firstVal) && firstVal.length) return String(firstVal[0]);
-    if (typeof firstVal === "string") return firstVal;
-  }
-  return err?.message || fallback;
-}
-
-const MAX_QTY_DIGITS = 4;
-const MAX_PRICE_INT_DIGITS = 10;
-const MAX_PRICE_DECIMALS = 2;
-
-const sanitizeQuantity = (value) => String(value).replace(/\D/g, "").slice(0, MAX_QTY_DIGITS);
-
-const sanitizePrice = (value) => {
-  const cleaned = String(value).replace(/[^\d.]/g, "");
-  const [intRaw = "", ...rest] = cleaned.split(".");
-  const intPart = intRaw.slice(0, MAX_PRICE_INT_DIGITS);
-  if (rest.length === 0) return intPart;
-  return `${intPart}.${rest.join("").slice(0, MAX_PRICE_DECIMALS)}`;
-};
-
 const emptyDraft = { productId: "", productLabel: "", quantity: "1", price: "", remark: "" };
-
-function getQuantityError(value) {
-  const n = Number(value);
-  if (value === "" || value === null || value === undefined || !Number.isFinite(n) || n <= 0) {
-    return "Quantity must be greater than 0.";
-  }
-  if (!Number.isInteger(n)) return "Quantity must be a whole number.";
-  if (String(value).length > MAX_QTY_DIGITS) return `Quantity can have at most ${MAX_QTY_DIGITS} digits.`;
-  return undefined;
-}
-
-function getPriceError(value) {
-  const n = Number(value);
-  if (value === "" || value === null || value === undefined || !Number.isFinite(n) || n <= 0) {
-    return "Price must be greater than 0.";
-  }
-  const [intPart] = String(value).split(".");
-  if (intPart.length > MAX_PRICE_INT_DIGITS) return `Price can have at most ${MAX_PRICE_INT_DIGITS} digits.`;
-  return undefined;
-}
 
 const AddReimbursement = () => {
   const navigate = useNavigate();
@@ -1113,7 +823,7 @@ const AddReimbursement = () => {
     setSubmitting(true);
     try {
       const res = await createReimbursementOrder(payload);
-      if (res && res.status >= 200 && res.status < 300) {
+      if (res && res.status == 200) {
         setConfirmModalOpen(false);
         toast.success("Reimbursement created successfully.");
         navigate("/reimbursement-fees");
@@ -1403,131 +1113,23 @@ const AddReimbursement = () => {
             {errors.items && <ErrorText>{errors.items}</ErrorText>}
 
             {items.length > 0 && (
-              <ItemsWrap>
-                <ItemsTable>
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th className="rf-num rf-col-qty">Qty</th>
-                      <th className="rf-num rf-col-price">Price</th>
-                      <th className="rf-col-remark">Remark</th>
-                      <th className="rf-num">Amount</th>
-                      <th className="rf-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((it) => {
-                      if (editingKey === it.key) {
-                        const liveAmount = (Number(editDraft.quantity) || 0) * (Number(editDraft.price) || 0);
-                        return (
-                          <tr key={it.key} className="rf-editing">
-                            <td>
-                              <CellStatic>{it.productLabel}</CellStatic>
-                            </td>
-                            <td className="rf-num">
-                              <CellInput
-                                type="text"
-                                inputMode="numeric"
-                                maxLength={MAX_QTY_DIGITS}
-                                $right
-                                value={editDraft.quantity}
-                                onChange={(e) => {
-                                  setEditDraft((d) => ({ ...d, quantity: sanitizeQuantity(e.target.value) }));
-                                  setEditErrors((p) => ({ ...p, quantity: undefined }));
-                                }}
-                                onKeyDown={handleEditKeyDown}
-                                disabled={submitting}
-                                $hasError={!!editErrors.quantity}
-                                aria-label={`Quantity for ${it.productLabel}`}
-                              />
-                              {editErrors.quantity && <CellError>{editErrors.quantity}</CellError>}
-                            </td>
-                            <td className="rf-num">
-                              <CellInput
-                                type="text"
-                                inputMode="decimal"
-                                $right
-                                value={editDraft.price}
-                                onChange={(e) => {
-                                  setEditDraft((d) => ({ ...d, price: sanitizePrice(e.target.value) }));
-                                  setEditErrors((p) => ({ ...p, price: undefined }));
-                                }}
-                                onKeyDown={handleEditKeyDown}
-                                disabled={submitting}
-                                $hasError={!!editErrors.price}
-                                aria-label={`Price for ${it.productLabel}`}
-                              />
-                              {editErrors.price && <CellError>{editErrors.price}</CellError>}
-                            </td>
-                            <td>
-                              <CellInput
-                                type="text"
-                                placeholder="Maximum 100 character"
-                                value={editDraft.remark}
-                                onChange={(e) => setEditDraft((d) => ({ ...d, remark: e.target.value }))}
-                                maxLength={100}
-                                onKeyDown={handleEditKeyDown}
-                                disabled={submitting}
-                                autoComplete="off"
-                                aria-label={`Remark for ${it.productLabel}`}
-                              />
-                            </td>
-                            <td className="rf-num">
-                              <CellStatic $right>₹{formatCurrency(liveAmount)}</CellStatic>
-                            </td>
-                            <td className="rf-actions">
-                              <ActionGroup>
-                                <InlineSaveBtn type="button" onClick={handleSaveEdit} disabled={submitting}>
-                                  <FiCheck size={13} />
-                                  Save
-                                </InlineSaveBtn>
-                                <InlineCancelBtn type="button" onClick={handleCancelEdit} disabled={submitting}>
-                                  <FiX size={13} />
-                                  Cancel
-                                </InlineCancelBtn>
-                              </ActionGroup>
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return (
-                        <tr key={it.key}>
-                          <td>{it.productLabel}</td>
-                          <td className="rf-num">{it.quantity}</td>
-                          <td className="rf-num">₹{formatCurrency(it.price)}</td>
-                          <td>
-                            <RemarkCell value={it.remark} />
-                          </td>
-                          <td className="rf-num">₹{formatCurrency(it.quantity * it.price)}</td>
-                          <td className="rf-actions">
-                            <ActionGroup>
-                              <EditBtn
-                                type="button"
-                                onClick={() => handleStartEdit(it)}
-                                disabled={submitting || (!!editingKey && editingKey !== it.key)}
-                                aria-label={`Edit ${it.productLabel}`}
-                                title={editingKey ? "Save or cancel the current edit first" : "Edit"}
-                              >
-                                <FiEdit2 size={13} />
-                              </EditBtn>
-                              <RemoveBtn
-                                type="button"
-                                onClick={() => handleRemoveItem(it.key)}
-                                disabled={submitting}
-                                aria-label={`Remove ${it.productLabel}`}
-                                title="Remove"
-                              >
-                                <FiTrash2 size={13} />
-                              </RemoveBtn>
-                            </ActionGroup>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </ItemsTable>
-              </ItemsWrap>
+              <ReimbursementItems
+                items={items}
+                editingKey={editingKey}
+                editDraft={editDraft}
+                setEditDraft={setEditDraft}
+                editErrors={editErrors}
+                setEditErrors={setEditErrors}
+                submitting={submitting}
+                onStartEdit={handleStartEdit}
+                onRemove={handleRemoveItem}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                onEditKeyDown={handleEditKeyDown}
+                sanitizeQuantity={sanitizeQuantity}
+                sanitizePrice={sanitizePrice}
+                maxQtyDigits={MAX_QTY_DIGITS}
+              />
             )}
 
             <ActionBar>

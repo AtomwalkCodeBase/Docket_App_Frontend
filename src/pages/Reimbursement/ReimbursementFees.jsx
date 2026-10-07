@@ -1,7 +1,8 @@
 // src/pages/ReimbursementFees.jsx
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import styled from "styled-components";
+import { useQuery } from "@tanstack/react-query";
 import { FiPlus, FiAlertCircle, FiRefreshCw, FiDownload } from "react-icons/fi";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
@@ -186,8 +187,6 @@ const Spinner = styled.div`
   }
 `;
 
-// ---- Export to Excel section (placed after the table/pagination) ----
-
 const ExportSection = styled.div`
   margin-top: 20px;
   background: var(--rf-surface);
@@ -222,42 +221,34 @@ const ExportSubtitle = styled.span`
 const ReimbursementFees = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Seeded once from the URL (e.g. arriving from a Dashboard bar); after that
-  // `filters` stays the single source of truth for the page.
   const [filters, setFilters] = useState(() => readFiltersFromUrl(searchParams));
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [uploadRecord, setUploadRecord] = useState(null); // NEW: record the Upload modal is open for
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    data: records = [],
+    isLoading: loading,
+    error: queryError,
+    refetch: fetchRecords,
+  } = useQuery({
+    queryKey: ["reimbursement-orders"],
+    queryFn: async () => {
+      try {
+        const res = await getReimbursementOrderList();
+        return Array.isArray(res?.data) ? res.data : [];
+      } catch (err) {
+        console.error("Failed to fetch reimbursement list:", err);
+        throw err;
+      }
+    },
+  });
 
-  // db_name is resolved dynamically inside ConstantServies.js /
-  // getReimbursementOrderList — nothing here reads or hardcodes it.
-  const fetchRecords = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getReimbursementOrderList();
-      const data = Array.isArray(res?.data) ? res.data : [];
-      setRecords(data);
-    } catch (err) {
-      console.error("Failed to fetch reimbursement list:", err);
-      setError(
-        err?.response?.data?.detail ||
-          err?.message ||
-          "Something went wrong while loading reimbursement invoices."
-      );
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+  const error = queryError
+    ? queryError?.response?.data?.detail ||
+      queryError?.message ||
+      "Something went wrong while loading reimbursement invoices."
+    : null;
 
 
   useEffect(() => {
@@ -278,8 +269,6 @@ const ReimbursementFees = () => {
     [records]
   );
 
-  // Existing filters first, then the amount range, then the due range (set by
-  // the Dashboard) on top of the result, so all filters combine (AND).
   const dateRangeError = useMemo(
     () =>
       filters.dateFrom && filters.dateTo && filters.dateTo < filters.dateFrom
@@ -302,17 +291,11 @@ const ReimbursementFees = () => {
     [records, effectiveFilters]
   );
 
-  // True when at least one filter differs from its default. Used by the
-  // Export section so its wording and the file name reflect what is exported.
   const hasActiveFilters = useMemo(
     () => Object.keys(EMPTY_FILTERS).some((key) => effectiveFilters[key] !== EMPTY_FILTERS[key]),
     [effectiveFilters]
   );
 
-  // Keeps ?amountRange / ?dueRange in step with the filters (replace, not push,
-  // so Back still returns to the Dashboard). Removing a chip or "Clear all"
-  // therefore also removes the param, and a refresh restores the same view.
-  // Any other query params are left untouched.
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (filters.amountRange && filters.amountRange !== "all") next.set("amountRange", filters.amountRange);
@@ -322,17 +305,12 @@ const ReimbursementFees = () => {
     if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
   }, [filters.amountRange, filters.dueRange, searchParams, setSearchParams]);
 
-  // Filtering happens before pagination (API records -> filter -> paginate
-  // -> table), per spec. Any change to the filters or to the underlying
-  // record set resets pagination back to page 1.
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, records]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
 
-  // Guards against being stranded on a page that no longer exists (e.g. the
-  // filtered set shrinks while on page 3).
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
@@ -404,13 +382,6 @@ const ReimbursementFees = () => {
     },
   ].filter(Boolean);
 
-  // Exports EVERY record matching the current filters (`filteredRecords`,
-  // across all pages — not just the visible page) into a single
-  // "Reimbursement Fees" worksheet. With no filters applied this is the full
-  // set of records, so the behaviour is unchanged. Uses the same field
-  // interpretation the table already uses (reimbursementUtils), restricted to
-  // the six reimbursement-level columns. No second API call, no mutation of
-  // `records`, no touching filters/pagination.
   const handleExportToExcel = () => {
     if (!filteredRecords || filteredRecords.length === 0) {
       toast.info(
@@ -440,23 +411,6 @@ const ReimbursementFees = () => {
     ).padStart(2, "0")}`;
 
     XLSX.writeFile(workbook, `Reimbursement_Fees${hasActiveFilters ? "_Filtered" : ""}_${dateStr}.xlsx`);
-  };
-
-  // NEW: called by the Upload modal when the user clicks "Upload".
-  // The form data is ready to send; connect your real upload API where marked.
-  // If the API call fails, show toast.error(...) and `throw err` so the modal
-  // stays open and the user does not lose the file or note.
-  const handleUploadSubmit = async ({ record, file, refNote }) => {
-    const formData = new FormData();
-    formData.append("invoice_number", record.invoice_number);
-    formData.append("file", file);
-    formData.append("ref_note", refNote);
-
-    // TODO: replace the next two lines with your upload API call, e.g.
-    //   await uploadReimbursementDocument(formData);
-    //   toast.success("Document uploaded successfully.");
-    console.log("Upload payload:", { invoice_number: record.invoice_number, fileName: file.name, refNote });
-    toast.info("Upload form works. Connect the upload API in handleUploadSubmit.");
   };
 
   return (
@@ -493,19 +447,11 @@ const ReimbursementFees = () => {
           </StateCard>
         ) : (
           <>
-            {/* Summary reflects ALL records matching the current filters (not just
-                the current page), so it uses filteredRecords, never
-                paginatedRecords. */}
             <SummaryCards
               records={filteredRecords}
               onDashboardClick={() => navigate("/reimbursement-fees/dashboard")}
             />
-
-            {/* <div className="rf-page__dashboards">
-              <AgingDashboard records={records} />
-              <AmountDistribution records={records} />
-            </div> */}
-
+            
             <ReimbursementFilters
               filters={filters}
               onChange={updateFilter}
@@ -550,12 +496,10 @@ const ReimbursementFees = () => {
         <ReimbursementDetailsModal record={selectedRecord} onClose={() => setSelectedRecord(null)} />
       )}
 
-      {/* NEW: Upload modal (file + Ref No / Note) */}
       {uploadRecord && (
         <ReimbursementUploadModal
           record={uploadRecord}
           onClose={() => setUploadRecord(null)}
-          onSubmit={handleUploadSubmit}
         />
       )}
     </DashboardLayout>

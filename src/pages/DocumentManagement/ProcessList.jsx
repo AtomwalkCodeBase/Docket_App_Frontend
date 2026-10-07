@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "./DocumentManagement.module.css";
 import { FaSearch, FaSyncAlt, FaPlus, } from "react-icons/fa";
+import { FiEye } from "react-icons/fi";
 import { getProcessList } from "../../services/productServices";
 import Pagination from "../../components/common/Pagination";
+import Table from "../../components/common/Table";
+import Button from "../../components/common/Button";
 
 
 
@@ -49,35 +52,20 @@ export function Toolbar({
 export function DataTable({ columns, rows, emptyMessage, rowKey }) {
   const getKey = rowKey || ((row, index) => (row && row.id != null ? row.id : index));
 
+  // Same API as before (columns use `label`); rendering is delegated to the common Table.
+  const tableColumns = columns.map((col) => ({
+    key: col.key,
+    header: col.label,
+    render: col.render,
+  }));
+
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key}>{col.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className={styles.emptyState}>
-                {emptyMessage || "No records found."}
-              </td>
-            </tr>
-          ) : (
-            rows.map((row, index) => (
-              <tr key={getKey(row, index)}>
-                {columns.map((col) => (
-                  <td key={col.key}>{col.render ? col.render(row) : row[col.key]}</td>
-                ))}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      columns={tableColumns}
+      data={rows}
+      rowKey={getKey}
+      emptyMessage={emptyMessage || "No records found."}
+    />
   );
 }
 
@@ -166,7 +154,10 @@ export default function ProcessList({ onView }) {
     );
   }, [search, processList]);
 
-  const totalPages = Math.ceil(filteredRows.length / ITEMS_PER_PAGE);
+  const totalCount = filteredRows.length;
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const startIdx = totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endIdx = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
 
   const rows = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -183,9 +174,9 @@ export default function ProcessList({ onView }) {
       label: "Action",
       render: (row) => (
         <div className={styles.rowActions}>
-          <button type="button" className={styles.linkButton} onClick={() => onView(row)}>
+          <Button variant="view" icon={<FiEye size={13} />} onClick={() => onView(row)}>
             View
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -208,6 +199,9 @@ export default function ProcessList({ onView }) {
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
+        totalCount={totalCount}
+        startIdx={startIdx}
+        endIdx={endIdx}
         showPageNumbers
         onPageChange={setCurrentPage}
       />

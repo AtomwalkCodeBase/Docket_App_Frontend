@@ -1,8 +1,8 @@
 // src/components/reimbursement/ReimbursementTable.jsx
 import styled from "styled-components";
-import { FiInbox, FiUpload } from "react-icons/fi";
+import { FiEye, FiInbox, FiUpload } from "react-icons/fi";
 import StatusBadge from "./StatusBadge";
-import ReimbursementRowActions from "./ReimbursementRowActions";
+import Table from "../common/Table";
 import Pagination from "../common/Pagination";
 import {
   formatCurrency,
@@ -14,68 +14,16 @@ import {
   safeText,
 } from "../../utils/reimbursementUtils";
 
-const TableWrap = styled.div`
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-`;
-
-const Scroller = styled.div`
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1180px;
-  font-family: var(--font-family-base, "IBM Plex Sans", system-ui, sans-serif);
-  font-size: 13px;
-
-  thead th {
-    position: sticky;
-    top: 0;
-    background: var(--color-background);
-    text-align: left;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    color: var(--color-text);
-    padding: 13px 14px;
-    border-bottom: 1px solid var(--color-border);
-    white-space: nowrap;
-  }
-
-  tbody td {
-    padding: 13px 14px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  tbody tr:hover td {
-    background: var(--color-background);
-  }
-`;
-
-const NumCell = styled.th`
-  text-align: center;
-  width: 170px;
-`;
-
-const IdTd = styled.td`
-  font-weight: 600;
+/* Page-specific cell content only – table structure/styling lives in common Table */
+const Strong = styled.span`
+  font-weight: ${({ $weight }) => $weight || 600};
   color: var(--color-text);
   white-space: nowrap;
 `;
 
-const DateTd = styled.td`
+const DueDate = styled.span`
   white-space: nowrap;
-  min-width: 120px;
+
   ${({ $overdue }) =>
     $overdue &&
     `
@@ -84,58 +32,47 @@ const DateTd = styled.td`
   `}
 `;
 
-const OutstandingTd = styled.td`
-  text-align: center;
-  font-weight: 700;
-  color: var(--color-text);
-  width: 170px;
-`;
-
-const StatusTd = styled.td`
-  padding-left: 20px;
-`;
-
-const StatusHeadCell = styled.th`
-  padding-left: 20px;
-`;
-
-// Rows are clickable to filter by customer. Hover background is already
-// handled by `tbody tr:hover td` in Table; this only adds the pointer and a
-// keyboard focus ring.
-const ClickableRow = styled.tr`
-  ${({ $clickable }) => $clickable && "cursor: pointer;"}
-
+const CustomerCell = styled.span`
   &:focus-visible {
     outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
+    outline-offset: 2px;
   }
 `;
 
-// "Actions" column holds only the View button.
-const ActionsCell = styled.td`
-  text-align: left;
+const ActionButtons = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+`;
+
+const ViewButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: var(--rf-radius-sm);
+  border: 1px solid transparent;
+  background: #1b3358;
+  color: #ffffff;
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
+  transition: background-color 0.15s ease, opacity 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #142542;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 `;
 
-const ActionsHeadCell = styled.th`
-  text-align: left;
-`;
-
-// NEW: separate "Upload" column so it has its own header.
-const UploadCell = styled.td`
-  text-align: left;
-  white-space: nowrap;
-  width: 170px;
-  padding-left: 30px;
-`;
-
-const UploadHeadCell = styled.th`
-  text-align: left;
-  width: 170px;
-  padding-left: 30px;
-`;
-
-// Outlined button so it does not compete with the dark View button.
 const UploadButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -150,7 +87,8 @@ const UploadButton = styled.button`
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     background: var(--color-primary-soft);
@@ -194,7 +132,13 @@ const Empty = styled.div`
   }
 `;
 
-const ReimbursementTable = ({ records, onView, onUpload, onCustomerSelect, pagination }) => {
+const ReimbursementTable = ({
+  records,
+  onView,
+  onUpload,
+  onCustomerSelect,
+  pagination,
+}) => {
   const selectCustomer = (name) => {
     if (onCustomerSelect && name) onCustomerSelect(name);
   };
@@ -211,91 +155,123 @@ const ReimbursementTable = ({ records, onView, onUpload, onCustomerSelect, pagin
     );
   }
 
+  const columns = [
+    {
+      key: "customer_name",
+      header: "Customer Name",
+      render: (r) => {
+        if (!(onCustomerSelect && r.customer_name)) {
+          return safeText(r.customer_name);
+        }
+
+        return (
+          <CustomerCell
+            tabIndex={0}
+            title={`Filter by ${r.customer_name}`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                selectCustomer(r.customer_name);
+              }
+            }}
+          >
+            {safeText(r.customer_name)}
+          </CustomerCell>
+        );
+      },
+    },
+    {
+      key: "invoice_number",
+      header: "Reimbursement Number",
+      render: (r) => <Strong>{safeText(r.invoice_number)}</Strong>,
+    },
+    {
+      key: "invoice_date",
+      header: "Reimbursement Date",
+      render: (r) => formatApiDate(r.invoice_date),
+    },
+    {
+      key: "invoice_due_date",
+      header: "Due Date",
+      render: (r) => (
+        <DueDate $overdue={isOverdueRecord(r)}>
+          {formatApiDate(r.invoice_due_date)}
+        </DueDate>
+      ),
+    },
+    {
+      key: "outstanding_amount",
+      header: "Outstanding Amount",
+      align: "center",
+      width: "170px",
+      render: (r) => (
+        <Strong $weight={700}>
+          {formatCurrency(getOutstandingAmount(r), getCurrencySymbol(r))}
+        </Strong>
+      ),
+    },
+    {
+      key: "payment_status",
+      header: "Payment Status",
+      render: (r) => (
+        <StatusBadge paid={isPaid(r)} overdue={isOverdueRecord(r)} />
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      nowrap: true,
+      render: (r) => (
+        <ActionButtons onClick={(e) => e.stopPropagation()}>
+          <ViewButton
+            type="button"
+            onClick={() => onView(r)}
+            aria-label={`View ${r?.invoice_number || r?.id}`}
+            title="View details"
+          >
+            <FiEye size={13} />
+            View
+          </ViewButton>
+
+          {onUpload && (
+            <UploadButton
+              type="button"
+              onClick={() => onUpload(r)}
+              aria-label={`Upload document for ${safeText(r.invoice_number)}`}
+            >
+              <FiUpload size={14} />
+              <span>Upload</span>
+            </UploadButton>
+          )}
+        </ActionButtons>
+      ),
+    },
+  ];
+
   return (
-    <TableWrap>
-      <Scroller>
-        <Table>
-          <thead>
-            <tr>
-              <th>Customer Name</th>
-              <th>Reimbursement Number</th>
-              <th>Reimbursement Date</th>
-              <th>Due Date</th>
-              <NumCell>Outstanding Amount</NumCell>
-              <StatusHeadCell>Payment Status</StatusHeadCell>
-              <ActionsHeadCell>Actions</ActionsHeadCell>
-              {/* NEW: Upload column header */}
-              <UploadHeadCell>Upload</UploadHeadCell>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((r) => {
-              const overdue = isOverdueRecord(r);
-              const paid = isPaid(r);
-              return (
-                <ClickableRow
-                  key={r.id}
-                  $clickable={Boolean(onCustomerSelect && r.customer_name)}
-                  onClick={() => selectCustomer(r.customer_name)}
-                  onKeyDown={(e) => {
-                    // Ignore keys pressed on inner controls (e.g. the View button).
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      selectCustomer(r.customer_name);
-                    }
-                  }}
-                  tabIndex={onCustomerSelect && r.customer_name ? 0 : undefined}
-                  title={onCustomerSelect && r.customer_name ? `Filter by ${r.customer_name}` : undefined}
-                >
-                  <td>{safeText(r.customer_name)}</td>
-                  <IdTd>{safeText(r.invoice_number)}</IdTd>
-                  <td>{formatApiDate(r.invoice_date)}</td>
-                  <DateTd $overdue={overdue}>{formatApiDate(r.invoice_due_date)}</DateTd>
-                  <OutstandingTd>{formatCurrency(getOutstandingAmount(r), getCurrencySymbol(r))}</OutstandingTd>
-                  <StatusTd>
-                    <StatusBadge paid={paid} overdue={overdue} />
-                  </StatusTd>
-
-                  {/* Stop propagation so clicking View / Upload never triggers the
-                      row's customer filter. */}
-                  <ActionsCell onClick={(e) => e.stopPropagation()}>
-                    <ReimbursementRowActions record={r} onView={() => onView(r)} />
-                  </ActionsCell>
-
-                  {/* NEW: Upload cell */}
-                  <UploadCell onClick={(e) => e.stopPropagation()}>
-                    {onUpload && (
-                      <UploadButton
-                        type="button"
-                        onClick={() => onUpload(r)}
-                        aria-label={`Upload document for ${safeText(r.invoice_number)}`}
-                      >
-                        <FiUpload size={14} />
-                        <span>Upload</span>
-                      </UploadButton>
-                    )}
-                  </UploadCell>
-                </ClickableRow>
-              );
-            })}
-          </tbody>
-        </Table>
-      </Scroller>
-
-      {pagination && (
-        <Pagination
-          embedded
-          showPageNumbers
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          totalCount={pagination.totalCount}
-          startIdx={pagination.startIdx}
-          endIdx={pagination.endIdx}
-          onPageChange={pagination.onPageChange}
-        />
-      )}
-    </TableWrap>
+    <Table
+      columns={columns}
+      data={records}
+      rowKey="id"
+      minWidth="1180px"
+      onRowClick={
+        onCustomerSelect ? (r) => selectCustomer(r.customer_name) : undefined
+      }
+      footer={
+        pagination ? (
+          <Pagination
+            embedded
+            showPageNumbers
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            startIdx={pagination.startIdx}
+            endIdx={pagination.endIdx}
+            onPageChange={pagination.onPageChange}
+          />
+        ) : null
+      }
+    />
   );
 };
 

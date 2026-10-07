@@ -1,17 +1,7 @@
-/*
-  Document Management page styles.
-  Scoped via CSS Modules — safe to drop into an existing project without
-  clashing with global class names.
-*/
-
 .page {
   color: #16213e;
   font-family: inherit;
 }
-
-/* ==========================================
-   Header
-========================================== */
 
 .header {
   margin-bottom: 26px;
@@ -267,145 +257,6 @@
   box-shadow: none;
 }
 
-/* Row-level action buttons (View / Documents / Add Template / Edit Template) */
-.linkButton {
-  font-family: var(--font-family-base, "IBM Plex Sans", system-ui, sans-serif);
-  display: inline-flex;
-  align-items: center;
-  /* justify-content: flex-end; */
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  padding: 12px 18px;
-  background: var(--rf-brass, #a9762f);
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
-  white-space: nowrap;
-}
-
-.linkButton:hover,
-.linkButton:focus-visible {
-  color: #fff;
-  background: var(--rf-brass-dark, #8a5f22);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(169, 118, 47, 0.28);
-}
-
-/* ---------------- Back button (shared everywhere) ---------------- */
-
-.backButton {
-  font-family: var(--font-family-base, "IBM Plex Sans", system-ui, sans-serif);
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  height: 40px;
-  padding: 12px 18px;
-  background: var(--rf-brass, #a9762f);
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
-}
-
-.backButton:hover {
-  color: #fff;
-  background: var(--rf-brass-dark, #8a5f22);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(169, 118, 47, 0.28);
-}
-
-/* ==========================================
-   Table
-========================================== */
-
-.tableWrapper {
-  border: 1px solid #c8dded;
-  border-radius: 3px;
-  overflow: auto;
-}
-
-.table {
-  font-family: var(--font-family-base, "IBM Plex Sans", system-ui, sans-serif);
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13.5px;
-}
-
-.table thead th {
-  text-align: left;
-  font-weight: 700;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #16213e;
-  background: #f6f5f1;
-  padding: 14px 16px;
-  border-bottom: 1px solid #c8dded;
-  white-space: nowrap;
-}
-
-.table tbody td {
-  padding: 15px 16px;
-  border-bottom: 1px solid #c8dded;
-  color: #16213e;
-  vertical-align: middle;
-}
-
-.table tbody tr {
-  transition: background 120ms ease;
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: #eeede8;
-}
-
-.emptyState {
-  text-align: center;
-  color: #5b6578;
-  padding: 36px 14px;
-  font-size: 13.5px;
-}
-
-/* ---------------- Badges ---------------- */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  line-height: 1.5;
-}
-
-.badgeActive {
-  color: #1a7f4b;
-  background: #dcf3e6;
-}
-
-.badgeInactive {
-  color: #b42318;
-  background: #f7ddda;
-}
-
-.badgeDraft {
-  color: #b7791f;
-  background: #fdf0d5;
-}
-
 .checkbox {
   width: 18px;
   height: 18px;
@@ -418,7 +269,6 @@
 .rowActions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 /* ==========================================
@@ -617,7 +467,6 @@
     width: 100%;
   }
 
-  .rowActions,
   .toolbarActions {
     flex-wrap: wrap;
   }

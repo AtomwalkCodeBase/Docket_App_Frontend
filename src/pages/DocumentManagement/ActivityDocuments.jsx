@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import styles from "./DocumentManagement.module.css";
 import { FaPlus } from "react-icons/fa";
+import { FiArrowLeft } from "react-icons/fi";
+import Button from "../../components/common/Button";
 import { Toolbar, DataTable, Breadcrumbs, DetailField } from "./ProcessList";
 import SelectDocumentModal from "../../components/modal/SelectDocumentModal";
 import { getProcessActivityList, getActivityDocumentList, addActivityDocument, updateActivityDocument } from "../../services/productServices";
@@ -252,37 +254,27 @@ export default function ActivityDocuments({ onBackToList, onBack }) {
         <div className={styles.rowActions}>
           {row._isEditing ? (
             <>
-              <button
-                type="button"
-                className={styles.linkButton}
+              <Button
+                variant="save"
                 onClick={() => handleSaveRow(row.id)}
               >
                 Save
-              </button>
-              <button
-                type="button"
-                className={styles.linkButton}
+              </Button>
+              <Button
+                variant="delete"
                 onClick={() => handleRemoveRow(row.id)}
               >
                 Remove
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button
-                type="button"
-                className={styles.linkButton}
+              <Button
+                variant="edit"
                 onClick={() => updateRow(row.id, { _isEditing: true })}
               >
                 Edit
-              </button>
-              {/* <button
-                type="button"
-                className={styles.linkButton}
-                onClick={() => handleRemoveRow(row.id)}
-              >
-                Remove
-              </button> */}
+              </Button>
             </>
           )}
         </div>
@@ -295,13 +287,13 @@ export default function ActivityDocuments({ onBackToList, onBack }) {
       <div style={{ display: "flex",
     justifyContent: "flex-end",
     marginBottom: 14, }}>
-        <button
-          type="button"
-          className={styles.backButton}
+        <Button
+          variant="back"
+          icon={<FiArrowLeft size={14} />}
           onClick={() => onBack(resolvedProcess)}
         >
-          ← Back to Activities
-        </button>
+          Back to Activities
+        </Button>
       </div>
       <Breadcrumbs
         items={[
@@ -344,10 +336,13 @@ export default function ActivityDocuments({ onBackToList, onBack }) {
       />
 
       <div style={{ marginTop: 14 }}>
-        <button type="button" className={styles.primaryButton} onClick={() => setModalOpen(true)}>
-          <span aria-hidden="true"><FaPlus size={14} /></span>
+        <Button
+          variant="add"
+          icon={<span aria-hidden="true"><FaPlus size={14} /></span>}
+          onClick={() => setModalOpen(true)}
+        >
           Add Document
-        </button>
+        </Button>
       </div>
       {isModalOpen && (
           <SelectDocumentModal
@@ -370,8 +365,8 @@ export default function ActivityDocuments({ onBackToList, onBack }) {
 
               <div className={styles.confirmButtons}>
 
-                  <button
-                      className={styles.cancelButton}
+                  <Button
+                      variant="cancel"
                       onClick={() => {
                           setConfirmModalOpen(false);
                           setSelectedRow(null);
@@ -379,14 +374,14 @@ export default function ActivityDocuments({ onBackToList, onBack }) {
                       }}
                   >
                       Cancel
-                  </button>
+                  </Button>
 
-                  <button
-                      className={styles.primaryButton}
+                  <Button
+                      variant="save"
                       onClick={confirmSave}
                   >
                       Save
-                  </button>
+                  </Button>
 
               </div>
 

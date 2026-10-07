@@ -595,7 +595,7 @@ export default function UserLogin() {
             </LogoRow>
 
             <Headline>
-              Manage Office,
+              Manage Office
               <br />
             </Headline>
 

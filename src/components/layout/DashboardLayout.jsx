@@ -21,11 +21,7 @@ const ShellMain = styled.div`
 
 const ShellContent = styled.main`
   flex: 1;
-  padding: 24px 28px 48px;
 
-  @media (max-width: 640px) {
-    padding: 18px 16px 36px;
-  }
 `;
 
 const DashboardLayout = ({ activeNav, pageTitle, breadcrumb, children }) => {
@@ -51,12 +47,23 @@ const DashboardLayout = ({ activeNav, pageTitle, breadcrumb, children }) => {
     }
   };
 
+  const handleCollapseSidebar = () => {
+    const isDesktop = typeof window !== "undefined" && window.innerWidth > 900;
+    if (!isDesktop) return;
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
+    } catch {
+    }
+    setCollapsed(true);
+  };
+
   return (
     <Shell className="rf-module">
       <Sidebar
         activeNav={activeNav}
         collapsed={collapsed}
         onExpand={() => setCollapsed(false)}
+        onCollapse={handleCollapseSidebar}
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />

@@ -1,9 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import styled, { css } from "styled-components";
-import {FiTrendingUp,FiFileText,FiCreditCard,FiChevronDown,FiChevronRight} from "react-icons/fi";
+import {
+  FiTrendingUp,
+  FiFileText,
+  FiCreditCard,
+  FiDollarSign,
+  FiBarChart2,
+  FiChevronDown,
+  FiChevronRight,
+  FiLogOut,
+} from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext"; 
 
 const EXPANDED_WIDTH = "255px";
 const COLLAPSED_WIDTH = "0px";
+
+
+const menuSections = [
+  {
+    id: "docket",
+    label: "Docket",
+    icon: FiTrendingUp,
+    items: [
+      {
+        label: "Docket Process",
+        path: "/document-management",
+        icon: FiFileText,
+      },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    icon: FiBarChart2,
+    items: [
+      {
+        label: "Reimbursement Fees",
+        path: "/reimbursement-fees",
+        icon: FiDollarSign,
+      },
+      {
+        label: "Account Statements",
+        path: "/account-statements",
+        icon: FiCreditCard,
+      },
+    ],
+  },
+];
+
 
 const Scrim = styled.div`
   display: none;
@@ -53,17 +98,16 @@ const Brand = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: ${({ $collapsed }) =>
-    $collapsed ? "15px 10px" : "10px 10px"};
+  padding: ${({ $collapsed }) => ($collapsed ? "15px 10px" : "10px 10px")};
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 `;
+
 const Logo = styled.img`
   height: 45px;
-    width: 100px;
-    margin-right: 10px;
-    border-radius: 10px;
-    
+  width: 100px;
+  margin-right: 10px;
+  border-radius: 10px;
 `;
 
 const BrandText = styled.div`
@@ -75,13 +119,7 @@ const BrandText = styled.div`
 `;
 
 const BrandName = styled.span`
-  font-family: var(
-    --rf-font-sans,
-    "IBM Plex Sans",
-    system-ui,
-    sans-serif
-  );
-
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
   font-weight: 650;
   font-size: 15px;
   color: #ffffff;
@@ -90,19 +128,11 @@ const BrandName = styled.span`
 
 const BrandSub = styled.span`
   margin-top: 3px;
-  font-family: var(
-    --rf-font-sans,
-    "IBM Plex Sans",
-    system-ui,
-    sans-serif
-  );
-
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
   font-size: 12px;
   color: #aeb7cd;
   font-weight: 400;
 `;
-
-
 
 const Nav = styled.nav`
   flex: 1;
@@ -140,12 +170,7 @@ const itemBase = css`
   background: transparent;
   border: none;
   color: #aeb7cd;
-  font-family: var(
-    --rf-font-sans,
-    "IBM Plex Sans",
-    system-ui,
-    sans-serif
-  );
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -161,8 +186,6 @@ const itemBase = css`
     flex-shrink: 0;
   }
 `;
-
-
 
 const NavParent = styled.button`
   ${itemBase}
@@ -216,19 +239,14 @@ const Submenu = styled.div`
   border-left: 1px solid rgba(255, 255, 255, 0.13);
 `;
 
-const Subitem = styled.a`
+const Subitem = styled(Link)`
   display: flex;
   align-items: center;
   gap: 11px;
   min-height: 42px;
   padding: 9px 13px;
   border-radius: 9px;
-  font-family: var(
-    --rf-font-sans,
-    "IBM Plex Sans",
-    system-ui,
-    sans-serif
-  );
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
   font-size: 14px;
   font-weight: 500;
   color: #b4bdd1;
@@ -245,7 +263,6 @@ const Subitem = styled.a`
   }
   &:hover {
     background: rgba(255, 255, 255, 0.07);
-
     color: #ffffff;
   }
 
@@ -269,130 +286,210 @@ const Subitem = styled.a`
     `}
 `;
 
+const UserFooter = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: ${({ $collapsed }) =>
+    $collapsed ? "center" : "space-between"};
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+`;
 
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+`;
+
+const UserAvatar = styled.div`
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #d5a03a;
+  color: #171717;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
+  text-transform: uppercase;
+`;
+
+const UserName = styled.span`
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  color: #f0f2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const LogoutButton = styled.button`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #aeb7cd;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #d5a03a;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+// Same source the Topbar uses for the logged-in user's name.
+const getUsername = () => {
+  try {
+    const userData = JSON.parse(localStorage.getItem("seaUser") || "{}");
+    return userData.username || "";
+  } catch {
+    return "";
+  }
+};
+
+const isItemActive = (item, pathname) => pathname === item.path;
+
+const isSectionActive = (section, pathname) =>
+  section.items.some((item) => isItemActive(item, pathname));
 
 const Sidebar = ({
-  activeNav = "reimbursement-fees",
   collapsed = false,
   onExpand,
+  onCollapse,
   mobileOpen = false,
   onCloseMobile,
 }) => {
-  const [docketOpen, setDocketOpen] = useState(true);
-  const [salesOpen, setSalesOpen] = useState(true);
+  const location = useLocation();
+  const { logout } = useAuth();
 
-  const isDocketActive = activeNav === "docket-process";
-  const isReimbursementActive = activeNav === "reimbursement-fees";
-  const isAccountStatementsActive = activeNav === "account-statements";
+  // Every section starts open; state is keyed by section id.
+  const [openSections, setOpenSections] = useState(() =>
+    Object.fromEntries(menuSections.map((section) => [section.id, true]))
+  );
 
-  const handleDocketClick = () => {
+  // Make sure the section holding the current route is open after navigation.
+  useEffect(() => {
+    const active = menuSections.find((section) =>
+      isSectionActive(section, location.pathname)
+    );
+    if (active) {
+      setOpenSections((prev) =>
+        prev[active.id] ? prev : { ...prev, [active.id]: true }
+      );
+    }
+  }, [location.pathname]);
+
+  const handleSectionClick = (sectionId) => {
     if (collapsed) {
       onExpand?.();
-
-      setDocketOpen(true);
-
+      setOpenSections((prev) => ({ ...prev, [sectionId]: true }));
       return;
     }
-
-    setDocketOpen((open) => !open);
+    setOpenSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
-  const handleSalesClick = () => {
-    if (collapsed) {
-      onExpand?.();
-
-      setSalesOpen(true);
-
-      return;
-    }
-
-    setSalesOpen((open) => !open);
+  const handleItemClick = () => {
+    onCloseMobile?.();
+    onCollapse?.();
   };
+
+  const userName = getUsername();
 
   return (
     <>
       <Scrim $show={mobileOpen} onClick={onCloseMobile} />
 
-      <Aside $collapsed={collapsed} $mobileOpen={mobileOpen} >
-
-
+      <Aside $collapsed={collapsed} $mobileOpen={mobileOpen}>
         <Brand $collapsed={collapsed}>
           <Logo src="/docket/Atom_walk_logo.jpg" alt="Company Logo" />
 
           {!collapsed && (
             <BrandText>
               <BrandName>Docket</BrandName>
-              <BrandSub>Sales Operations</BrandSub>
+              <BrandSub>Office Management</BrandSub>
             </BrandText>
           )}
         </Brand>
 
         <Nav aria-label="Primary navigation">
+          {menuSections.map((section) => {
+            const SectionIcon = section.icon;
+            const isOpen = !!openSections[section.id];
+            const sectionActive = isSectionActive(section, location.pathname);
 
-          <div>
-            <NavParent
-              type="button"
-              $collapsed={collapsed}
-              $active={isDocketActive}
-              onClick={handleDocketClick}
-              aria-expanded={ docketOpen && !collapsed}
-              title={ collapsed ? "Docket" : undefined } >
-              <FiTrendingUp size={18} />
-              {!collapsed && (<span>Docket</span> )}
+            return (
+              <div key={section.id}>
+                <NavParent
+                  type="button"
+                  $collapsed={collapsed}
+                  $active={sectionActive}
+                  onClick={() => handleSectionClick(section.id)}
+                  aria-expanded={isOpen && !collapsed}
+                  title={collapsed ? section.label : undefined}
+                >
+                  <SectionIcon size={18} />
+                  {!collapsed && <span>{section.label}</span>}
+                  {!collapsed &&
+                    (isOpen ? (
+                      <FiChevronDown size={16} />
+                    ) : (
+                      <FiChevronRight size={16} />
+                    ))}
+                </NavParent>
 
-              {!collapsed &&
-                (docketOpen ? ( <FiChevronDown size={16} /> ) : (<FiChevronRight size={16} />
-                ))}
-            </NavParent>
-
-            {/* Docket submenu */}
-
-            {!collapsed && docketOpen && (
-              <Submenu>
-                <Subitem href="/docket/document-management" $active={isDocketActive}>
-                  <FiFileText size={17} />
-                  <span>Docket Process</span>
-                </Subitem>
-              </Submenu>
-            )}
-          </div>
-
-
-          <div>
-            <NavParent
-              type="button"
-              $collapsed={collapsed}
-              $active={isReimbursementActive || isAccountStatementsActive}
-              onClick={handleSalesClick}
-              aria-expanded={ salesOpen && !collapsed }
-              title={ collapsed ? "Sales" : undefined } >
-              <FiTrendingUp size={18} />
-
-              {!collapsed && (<span>Sales</span>)}
-              {!collapsed &&
-                (salesOpen ? ( <FiChevronDown size={16} />
-                ) : ( <FiChevronRight size={16} />            
-                ))}
-            </NavParent>
-
-            {/* Sales submenu */}
-
-            {!collapsed && salesOpen && (
-              <Submenu>
-                <Subitem href="/docket/reimbursement-fees" $active={isReimbursementActive}>
-                  <FiFileText size={17} />
-                  <span>Reimbursement Fees</span>
-                </Subitem>
-                <Subitem
-                  href="/docket/account-statements"
-                  $active={isAccountStatementsActive}>               
-                  <FiCreditCard size={17} />
-                  <span>Account Statements</span>
-                </Subitem>
-              </Submenu>
-            )}
-          </div>
+                {!collapsed && isOpen && (
+                  <Submenu>
+                    {section.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <Subitem
+                          key={item.path}
+                          to={item.path}
+                          $active={isItemActive(item, location.pathname)}
+                          onClick={handleItemClick}
+                        >
+                          <ItemIcon size={17} />
+                          <span>{item.label}</span>
+                        </Subitem>
+                      );
+                    })}
+                  </Submenu>
+                )}
+              </div>
+            );
+          })}
         </Nav>
+
+        <UserFooter $collapsed={collapsed}>
+          {!collapsed && (
+            <UserInfo>
+              <UserAvatar>{userName.charAt(0) || "U"}</UserAvatar>
+              <UserName title={userName}>{userName}</UserName>
+            </UserInfo>
+          )}
+          <LogoutButton type="button" onClick={logout} title="Logout">
+            <FiLogOut />
+          </LogoutButton>
+        </UserFooter>
       </Aside>
     </>
   );

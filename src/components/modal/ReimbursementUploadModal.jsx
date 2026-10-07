@@ -274,10 +274,31 @@ const SubmitButton = styled.button`
 
 const toText = (v) => (v === null || v === undefined ? "" : String(v).trim());
 
+// ref_order_file is the attachment's (signed) URL, so the filename is its last
+// path segment. The query string is ignored.
+const getAttachmentName = (value) => {
+  const raw = toText(value);
+  if (!raw) return "";
+  try {
+    const last = new URL(raw).pathname.split("/").filter(Boolean).pop() || "";
+    return decodeURIComponent(last) || raw;
+  } catch {
+    const last = raw.split("?")[0].split("/").filter(Boolean).pop() || raw;
+    try {
+      return decodeURIComponent(last);
+    } catch {
+      return last;
+    }
+  }
+};
+
 // onUploaded(res, successMessage): called after a successful upload so the parent can
 // show its success toast and reload the list.
 const ReimbursementUploadModal = ({ record, onClose, onUploaded }) => {
   const hasAttachment = toText(record?.ref_order_file) !== "";
+  const existingFileName = getAttachmentName(record?.ref_order_file);
+  // Shown until the user removes it from the modal; nothing is deleted on the server.
+  const [showExisting, setShowExisting] = useState(hasAttachment);
   const [file, setFile] = useState(null);
   const [refNote, setRefNote] = useState(() => toText(record?.po_ref_number));
   const [remarks, setRemarks] = useState(() => toText(record?.additional_remarks));
@@ -378,10 +399,29 @@ const ReimbursementUploadModal = ({ record, onClose, onUploaded }) => {
 
         <Body>
           <Field>
-            <Label>{hasAttachment ? "Replace file" : "Upload file"}</Label>
-            {hasAttachment && <Note>A file is already attached. Choose a new file to replace it.</Note>}
+            <Label>
+              {showExisting ? "Existing Attachment" : hasAttachment ? "Replace file" : "Upload file"}
+            </Label>
+            {hasAttachment && !showExisting && (
+              <Note>A file is already attached. Choose a new file to replace it.</Note>
+            )}
 
-            {file ? (
+            {showExisting ? (
+              <FileRow>
+                <FiFile size={22} />
+                <FileInfo>
+                  <FileName title={existingFileName}>{existingFileName}</FileName>
+                </FileInfo>
+                <RemoveButton
+                  type="button"
+                  onClick={() => setShowExisting(false)}
+                  aria-label="Remove existing attachment"
+                  title="Remove"
+                >
+                  <FiX size={16} />
+                </RemoveButton>
+              </FileRow>
+            ) : file ? (
               <FileRow>
                 <FiFile size={22} />
                 <FileInfo>
