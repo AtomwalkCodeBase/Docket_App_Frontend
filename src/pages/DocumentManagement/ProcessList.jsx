@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "./DocumentManagement.module.css";
 import { FaSearch, FaSyncAlt, FaPlus, } from "react-icons/fa";
 import { getProcessList } from "../../services/productServices";
+import Pagination from "../../components/common/Pagination";
 
 
 
@@ -204,27 +205,12 @@ export default function ProcessList({ onView }) {
         rowKey={(row) => row.process_id}
         emptyMessage={loading ? "Loading processes..." : "No processes found."}
       />
-      <div className={styles.pagination}>
-      <button
-        className={styles.pageButton}
-        disabled={currentPage === 1}
-        onClick={() => setCurrentPage((p) => p - 1)}
-      >
-        ← Previous
-      </button>
-
-      <span className={styles.pageInfo}>
-        Page {currentPage} of {totalPages || 1}
-      </span>
-
-      <button
-        className={styles.pageButton}
-        disabled={currentPage === totalPages || totalPages === 0}
-        onClick={() => setCurrentPage((p) => p + 1)}
-      >
-        Next →
-      </button>
-    </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        showPageNumbers
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

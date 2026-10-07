@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import styles from "./DocumentManagement.module.css";
-import { DataTable } from "./ProcessList";
+import styles from "../../pages/DocumentManagement/DocumentManagement.module.css";
+import { DataTable } from "../../pages/DocumentManagement/ProcessList";
 import { getDocumentTypeList } from "../../services/productServices";
 
 
@@ -27,7 +27,6 @@ const panelStyle = {
 export default function SelectDocumentModal({ onClose, onSelect }) {
   const [documentTypeList, setDocumentTypeList] = useState([]);
   const [loading, setLoading] = useState(false);
-  // const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -72,7 +71,7 @@ export default function SelectDocumentModal({ onClose, onSelect }) {
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div
-        className={styles.tabsContainer}
+        className={styles.modalPanel}
         style={panelStyle}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

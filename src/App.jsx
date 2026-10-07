@@ -7,9 +7,6 @@ import { ThemeProvider } from "./context/ThemeContext";
 
 // Auth & Protected Routes
 import { AuthProvider } from "./context/AuthContext";
-
-
-
 // Public Pages
 
 import UserLogin from "./pages/UserLogin";
@@ -17,6 +14,12 @@ import NotFound from "./pages/NotFound";
 import DocumentManagement from "./pages/DocumentManagement/DocumentManagement";
 import EmailTemplate from "./pages/EmailTemplate/EmailTemplate";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ReimbursementFees from "./pages/Reimbursement/ReimbursementFees";
+import AddReimbursement from "./pages/Reimbursement/AddReimbursement";
+import ReimbursementDashboard from "./pages/Reimbursement/ReimbursementDashboard";
+// import AccountStatementHistory from "./pages/AccountStatement/AccountStatementHistory";
+// import AccountStatementUpload from "./pages/AccountStatement/AccountStatementUpload";
+// import AccountStatementDetails from "./pages/AccountStatement/AccountStatementDetails";
 
 
 function App() {
@@ -43,6 +46,12 @@ function App() {
                   
                   <Route path="/document-management/*" element={<DocumentManagement />} />
                   <Route path="email-template/:activityId/*" element={<EmailTemplate />} />
+                  <Route path="/reimbursement-fees" element={<ReimbursementFees />} />
+                  <Route path="/reimbursement-fees/add" element={<AddReimbursement />} />
+                  <Route path="/reimbursement-fees/dashboard" element={<ReimbursementDashboard />} />
+                  {/* <Route path="/account-statements" element={<AccountStatementHistory />} />
+                  <Route path="/account-statements/upload" element={<AccountStatementUpload />} />
+                  <Route path="/account-statements/:statementId" element={<AccountStatementDetails />} /> */}
                 </Route>
                 
 

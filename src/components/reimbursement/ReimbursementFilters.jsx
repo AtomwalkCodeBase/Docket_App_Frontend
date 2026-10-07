@@ -1,0 +1,640 @@
+// src/components/reimbursement/ReimbursementFilters.jsx
+
+import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
+import styled, { css, keyframes } from "styled-components";
+import { FiSearch, FiX, FiChevronDown, FiCheck } from "react-icons/fi";
+
+const Wrap = styled.div`
+  background: var(--rf-surface);
+  border: 1.5px solid var(--rf-line-strong);
+  border-radius: var(--rf-radius-md);
+  padding: 14px 16px;
+  box-shadow: var(--rf-shadow-sm);
+  margin-bottom: 16px;
+  font-family: var(--rf-font-sans, "IBM Plex Sans", system-ui, sans-serif);
+`;
+
+const Row = styled.div`
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.3fr)
+    minmax(0, 1fr)
+    minmax(0, 0.9fr)
+    minmax(0, 0.9fr)
+    minmax(0, 1fr)
+    minmax(310px, 1.9fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    > *:first-child,
+    > *:nth-child(6) {
+      grid-column: 1 / -1;
+    }
+
+    > *:nth-child(6) {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    > * {
+      width: 100%;
+    }
+
+    > *:first-child,
+    > *:nth-child(6) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+
+    > * {
+      grid-column: auto !important;
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+`;
+
+const SearchField = styled.div`
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--rf-line-strong);
+  border-radius: var(--rf-radius-sm);
+  background: var(--rf-paper);
+  color: var(--rf-slate);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--rf-brass);
+    box-shadow: 0 0 0 3px var(--rf-brass-soft);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  input,
+  input:hover,
+  input:focus,
+  input:focus-visible {
+    min-width: 0;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: none !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--rf-ink);
+  }
+`;
+
+const dropdownAnimation = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+`;
+
+const SelectShell = styled.div`
+  position: relative;
+  width: 100%;
+  min-width: 0;
+`;
+
+const fieldBase = css`
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  box-sizing: border-box;
+  border: 1px solid var(--rf-line-strong);
+  border-radius: var(--rf-radius-sm);
+  background: var(--rf-surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--rf-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: var(--rf-brass);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--rf-brass);
+    box-shadow: 0 0 0 3px var(--rf-brass-soft);
+  }
+`;
+
+const selectControl = css`
+  ${fieldBase}
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0 34px 0 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SelectInput = styled.input`
+  ${selectControl}
+  cursor: text;
+
+  &::placeholder {
+    color: var(--rf-ink);
+    opacity: 0.85;
+  }
+`;
+
+const SelectTrigger = styled.button`
+  ${selectControl}
+  display: flex;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+`;
+
+const SelectValue = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+`;
+
+const SelectChevron = styled(FiChevronDown)`
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%) rotate(${(p) => (p.$open ? "180deg" : "0deg")});
+  flex-shrink: 0;
+  color: #6b6255;
+  pointer-events: none;
+  transition: transform 0.18s ease;
+`;
+
+const SelectEmpty = styled.div`
+  padding: 10px;
+  font-size: 13px;
+  color: var(--rf-slate);
+`;
+
+const SelectMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line-strong);
+  border-radius: var(--rf-radius-sm);
+  box-shadow: 0 10px 30px rgba(30, 22, 10, 0.14);
+  transform-origin: top center;
+  animation: ${dropdownAnimation} 0.16s ease both;
+  animation-direction: ${(p) => (p.$closing ? "reverse" : "normal")};
+`;
+
+const SelectOption = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: ${(p) => (p.$active ? "var(--rf-brass-soft)" : "transparent")};
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: ${(p) => (p.$active ? 600 : 500)};
+  text-align: left;
+  color: ${(p) => (p.$active ? "var(--rf-brass-dark)" : "var(--rf-ink)")};
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background: var(--rf-brass-soft);
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: var(--rf-brass-dark);
+  }
+`;
+
+const AnimatedSelect = ({
+  value,
+  onChange,
+  children,
+  searchable = false,
+  "aria-label": ariaLabel,
+}) => {
+  const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [query, setQuery] = useState("");
+  const shellRef = useRef(null);
+  const triggerRef = useRef(null);
+  const closeTimer = useRef(null);
+
+  const options = useMemo(
+    () =>
+      Children.toArray(children)
+        .filter(isValidElement)
+        .map((child) => ({
+          value: child.props.value,
+          label: child.props.children,
+        })),
+    [children]
+  );
+
+  const selected = options.find((opt) => opt.value === value) || options[0];
+
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q
+      ? options.filter((opt) => String(opt.label ?? "").toLowerCase().includes(q))
+      : options;
+  }, [options, query]);
+
+  const closeMenu = () => {
+    setOpen((isOpen) => {
+      if (!isOpen) return isOpen;
+
+      setClosing(true);
+      clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(() => {
+        setOpen(false);
+        setClosing(false);
+        setQuery("");
+      }, 150);
+
+      return isOpen;
+    });
+  };
+
+  const openMenu = () => {
+    clearTimeout(closeTimer.current);
+    setClosing(false);
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleOutside = (e) => {
+      if (shellRef.current && !shellRef.current.contains(e.target)) closeMenu();
+    };
+
+    const handleKey = (e) => {
+      if (e.key === "Escape") {
+        closeMenu();
+        triggerRef.current?.blur();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  const handlePick = (val) => {
+    onChange({ target: { value: val } });
+    closeMenu();
+    triggerRef.current?.blur();
+  };
+
+  const toggleMenu = () => (open && !closing ? closeMenu() : openMenu());
+
+  return (
+    <SelectShell ref={shellRef}>
+      {searchable ? (
+        <SelectInput
+          ref={triggerRef}
+          type="text"
+          role="combobox"
+          aria-label={ariaLabel}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          autoComplete="off"
+          placeholder={selected?.label ?? ""}
+          value={open ? query : ""}
+          onFocus={openMenu}
+          onClick={openMenu}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!open) openMenu();
+          }}
+        />
+      ) : (
+        <SelectTrigger
+          ref={triggerRef}
+          type="button"
+          aria-label={ariaLabel}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          onClick={toggleMenu}
+        >
+          <SelectValue>{selected?.label ?? ""}</SelectValue>
+        </SelectTrigger>
+      )}
+
+      <SelectChevron size={14} $open={open && !closing} />
+
+      {open && (
+        <SelectMenu role="listbox" $closing={closing}>
+          {filteredOptions.length === 0 ? (
+            <SelectEmpty>No matches found.</SelectEmpty>
+          ) : (
+            filteredOptions.map((opt) => (
+              <SelectOption
+                key={opt.value}
+                type="button"
+                role="option"
+                aria-selected={opt.value === value}
+                $active={opt.value === value}
+                onClick={() => handlePick(opt.value)}
+              >
+                <span>{opt.label}</span>
+                {opt.value === value && <FiCheck size={13} />}
+              </SelectOption>
+            ))
+          )}
+        </SelectMenu>
+      )}
+    </SelectShell>
+  );
+};
+
+const DateRange = styled.div`
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--rf-slate);
+
+  span {
+    white-space: nowrap;
+    text-align: center;
+  }
+`;
+
+const DateError = styled.div`
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--rf-rust);
+  text-align: left;
+`;
+
+const DateField = styled.div`
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  overflow: hidden;
+  border-radius: var(--rf-radius-sm);
+
+  input {
+    ${fieldBase}
+    display: block;
+    padding: 0 8px;
+  }
+`;
+
+const Meta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+`;
+
+const Chips = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const Chip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 10px;
+  border-radius: 999px;
+  background: var(--rf-brass-soft);
+  color: var(--rf-brass-dark);
+  font-size: 12px;
+  font-weight: 600;
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(138, 95, 34, 0.15);
+    color: var(--rf-brass-dark);
+    cursor: pointer;
+  }
+`;
+
+const ClearAll = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 12px 18px;
+  background: var(--rf-brass);
+  color: #fff;
+  border: none;
+  border-radius: var(--rf-radius-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  white-space: nowrap;
+`;
+
+const ReimbursementFilters = ({
+  filters,
+  onChange,
+  onClearAll,
+  customerOptions,
+  amountRangeOptions = [],
+  dateRangeError = "",
+  activeChips,
+}) => {
+  const hasAnyFilter =
+    Boolean(filters.search) ||
+    Boolean(filters.customer) ||
+    Boolean(filters.status) ||
+    Boolean(filters.overdue) ||
+    Boolean(filters.amountRange && filters.amountRange !== "all") ||
+    Boolean(filters.dueRange) ||
+    Boolean(filters.dateFrom) ||
+    Boolean(filters.dateTo);
+
+  return (
+    <Wrap>
+      <Row>
+        <SearchField>
+          <FiSearch size={15} />
+          <input
+            type="text"
+            placeholder="Search customer or inv number"
+            value={filters.search}
+            onChange={(e) => onChange("search", e.target.value)}
+          />
+        </SearchField>
+
+        <AnimatedSelect
+          searchable
+          value={filters.customer}
+          onChange={(e) => onChange("customer", e.target.value)}
+        >
+          <option value="">All customers</option>
+          {customerOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </AnimatedSelect>
+
+        <AnimatedSelect
+          searchable={false}
+          value={filters.status}
+          onChange={(e) => onChange("status", e.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="paid">Paid</option>
+          <option value="not_paid">Not Paid</option>
+        </AnimatedSelect>
+
+        <AnimatedSelect
+          searchable={false}
+          value={filters.overdue}
+          onChange={(e) => onChange("overdue", e.target.value)}
+        >
+          <option value="">Overdue: all</option>
+          <option value="yes">Overdue only</option>
+          <option value="no">Not overdue</option>
+          <option value="today">Due today</option>
+        </AnimatedSelect>
+
+        <AnimatedSelect
+          searchable={false}
+          value={filters.amountRange}
+          onChange={(e) => onChange("amountRange", e.target.value)}
+          aria-label="Amount Range"
+        >
+          {amountRangeOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </AnimatedSelect>
+
+        <DateRange>
+          <DateField>
+            <input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) => onChange("dateFrom", e.target.value)}
+              aria-label="Invoice date from"
+              aria-invalid={Boolean(dateRangeError)}
+            />
+          </DateField>
+
+          <span>to</span>
+
+          <DateField>
+            <input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => onChange("dateTo", e.target.value)}
+              aria-label="Invoice date to"
+              aria-invalid={Boolean(dateRangeError)}
+            />
+          </DateField>
+
+          {dateRangeError && (
+            <DateError role="alert">{dateRangeError}</DateError>
+          )}
+        </DateRange>
+      </Row>
+
+      <Meta>
+        <Chips>
+          {activeChips.map((chip) => (
+            <Chip key={chip.key}>
+              {chip.label}
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                aria-label={`Remove ${chip.label} filter`}
+              >
+                <FiX size={12} />
+              </button>
+            </Chip>
+          ))}
+
+          {hasAnyFilter && (
+            <ClearAll type="button" onClick={onClearAll}>
+              Clear filters
+            </ClearAll>
+          )}
+        </Chips>
+      </Meta>
+    </Wrap>
+  );
+};
+
+export default ReimbursementFilters;

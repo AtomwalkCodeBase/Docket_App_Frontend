@@ -3,7 +3,7 @@ import { useParams, useLocation } from "react-router-dom";
 import styles from "./DocumentManagement.module.css";
 import { FaPlus } from "react-icons/fa";
 import { Toolbar, DataTable, Breadcrumbs, DetailField } from "./ProcessList";
-import SelectDocumentModal from "./SelectDocumentModal";
+import SelectDocumentModal from "../../components/modal/SelectDocumentModal";
 import { getProcessActivityList, getActivityDocumentList, addActivityDocument, updateActivityDocument } from "../../services/productServices";
 
 let tempIdCounter = -1; // negative temp ids for newly added, unsaved rows

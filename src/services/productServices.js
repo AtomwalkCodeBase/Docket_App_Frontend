@@ -1,4 +1,6 @@
-import { setuserpin, getCompany, forgetPin, profileDtlURL,getProcessListUrl , getDocumentTypeListUrl, getProcessActivityListUrl, getActivityDocumentListUrl, processActivityDocument, getActivityEmailListUrl, processActivityEmailUrl } from "../services/ConstantServies";
+import { setuserpin, getCompany, forgetPin, profileDtlURL,getProcessListUrl , getDocumentTypeListUrl, getProcessActivityListUrl, getActivityDocumentListUrl, processActivityDocument, getActivityEmailListUrl, processActivityEmailUrl,
+  getCustomerListURL,getReimbursementOrderListURL,getProductListURL,ProcessReimbursementOrder,ProcessGovtFeeAttachement
+ } from "../services/ConstantServies";
 import { authAxios, authAxiosFilePost, authAxiosget, authAxiosPatch, authAxiosPost, authAxiosPut } from "./HttpMethod";
 
 
@@ -46,9 +48,6 @@ export function getCustomerDetailList(customerId) {
   return authAxios(getCustomerDetailListURL, data);
 }
 
-export function getCustomerListView(params) {
-  return authAxios(getCustomerListURL, params)
-}
 
 export async function setuserpinview(o_pin, n_pin) {
   try {
@@ -80,4 +79,24 @@ export function getActivityEmailList(data = {}) {
 
 export function processActivityEmail(data = {}) {
   return authAxiosPost(processActivityEmailUrl, data);
+}
+
+export function getCustomerListView(params) {
+  return authAxios(getCustomerListURL, params)
+}
+
+export function getReimbursementOrderList(data = {}) {
+  return authAxios(getReimbursementOrderListURL, data);
+}
+
+export function getProductList(data = {}) {
+  return authAxios(getProductListURL, data);
+}
+
+export function createReimbursementOrder(data = {}) {
+  return authAxiosPost(ProcessReimbursementOrder, data);
+}
+
+export function uploadGovtFeeAttachment(data = {}) {
+  return authAxiosPost(ProcessGovtFeeAttachement, data);
 }

@@ -1,159 +1,101 @@
-import { createContext, useState, useEffect, useContext } from "react"
-import { publicAxiosRequest } from "../services/HttpMethod"
-import { customerslogin, loginURL } from "../services/ConstantServies"
-import { getCompanyInfo, getEmployeeInfo } from "../services/authServices"
-// import { useNavigate } from "react-router-dom"
-import { toast } from "react-toastify"
-import { getCustomerDetailList } from "../services/productServices"
+import { createContext, useState, useEffect, useContext } from "react";
+import { publicAxiosRequest } from "../services/HttpMethod";
+import { loginURL } from "../services/ConstantServies";
+import { toast } from "react-toastify";
 
-const AuthContext = createContext()
+const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState([])
-  const [companyInfo, setCompanyInfo] = useState([])
-  const [error, setError] = useState("")
-  const iscoustomerLogin = localStorage.getItem("customerUser") ? true : false
-  const usertoake = localStorage.getItem("userToken")
-  const [taskResponse, setTaskResponse] = useState([]);
-  // const navigate = useNavigate()
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Check existing login session
   useEffect(() => {
-    const fetchProfile = async () => {
-      // try {
-      //   const res = await getEmployeeInfo();
-      //   setProfile(res?.data[0]);
+    const user = localStorage.getItem("seaUser");
+    const token = localStorage.getItem("userToken");
 
-      // } catch (error) {
-      //   console.error('Failed to fetch profile:', error);
-      // }
+    if (user && token) {
       try {
-        const res = await getCompanyInfo();
-        setCompanyInfo(res?.data);
-      }
-      catch (error) {
-        console.log('Failed to fetch company info:', error);
-      }
-    };
-    const fetchcustomerProfile = async () => {
-      const custId = localStorage.getItem("custId");
-      try {
-        const res = await getCustomerDetailList(custId);
-        setProfile(res?.data[0]);
+        setCurrentUser(JSON.parse(user));
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
+        console.error("Failed to restore user session:", error);
+        localStorage.removeItem("seaUser");
+        localStorage.removeItem("userToken");
       }
-    };
-    if (iscoustomerLogin) {
-      fetchcustomerProfile();
-    }
-    else {
-      if (usertoake) {
-        fetchProfile();
-      }
-
     }
 
-    // Check if user is logged in from localStorage
-    const user = localStorage.getItem("seaUser_E") || localStorage.getItem("customerUser") || localStorage.getItem("seaUser");
-    if (user) {
-      setCurrentUser(JSON.parse(user))
-    }
-    setLoading(false)
-  }, [])
+    setLoading(false);
+  }, []);
 
+  // User login
   const SeaFoodLogin = async (userData) => {
-     try {
+    try {
+      setError("");
+
       const payload = {
         username: userData.username,
-        password: userData.password
-      }
+        password: userData.password,
+      };
+
       const response = await publicAxiosRequest.post(loginURL, payload);
-  
-  
+
       if (response.status === 200) {
-        setError("");
         const { key } = response.data;
-        // Store token and emp_id in AsyncStorage
-        localStorage.setItem('userToken', key);
+
+        // Store authentication information
+        localStorage.setItem("userToken", key);
         localStorage.setItem("seaUser", JSON.stringify(payload));
-        const db_name = payload.username.split("@")
-        localStorage.setItem("dbName", db_name[1]);
-        setCurrentUser(userData);
+
+        // Extract database name from username
+        const dbName = userData.username.split("@")[1];
+
+        if (dbName) {
+          localStorage.setItem("dbName", dbName);
+        }
+
+        setCurrentUser(payload);
         toast.success("Login successful!");
-        window.location.href = "/docket/document-management";
+        window.location.href = "/docket/reimbursement-fees";
+
         return true;
       }
+
+      return false;
     } catch (error) {
+      console.error("Login error:", error);
+      setError("Login failed. Please check your credentials.");
       toast.error("Login failed. Please check your credentials.");
+
+      return false;
     }
+  };
 
-  }
-
-
+  // User logout
   const logout = () => {
-    if (iscoustomerLogin) {
-      localStorage.removeItem("customerToken")
-      localStorage.removeItem("custId")
-      localStorage.removeItem("customerUser")
-      toast.success("Logout successful!");
-      window.location.href = "/customer/login.html";
-    }
-    if(localStorage.getItem("seaUser")){
-      window.location.href = "/docket/user/login";
-    }
-    if(localStorage.getItem("seaUser_E")){
-      window.location.href = "/docket/emp/login";
-    }
-    localStorage.removeItem("seaUser")
-    localStorage.removeItem("seaUser_E")
-    localStorage.removeItem("dbName")
-    localStorage.removeItem("userToken")
-    localStorage.removeItem("empId")
-    localStorage.removeItem("empNoId")
-    setCurrentUser(null)
-  }
-  const customerlogin = async (userData) => {
-    try {
-      const payload = {
-        mobile_number: userData.mobile,
-        pin: userData.password,
-      }
+    // Clear user session
+    localStorage.removeItem("seaUser");
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("dbName");
 
-      const response = await publicAxiosRequest.post(customerslogin + `${userData.company}/`, payload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.status === 200) {
-        const { token, customer_id } = response.data;
-        localStorage.setItem('customerToken', token);
-        localStorage.setItem('custId', String(customer_id));
-        localStorage.setItem('customerUser', JSON.stringify(userData));
-        toast.success("Login successful!");
-        window.location.href = "/invoices";
-      }
-    }
-    catch (error) {
-      console.log("Login error:", error.response.data.error);
-      toast.error(error.response.data.error);
-    }
-  }
+    setCurrentUser(null);
+    toast.success("Logout successful!");
+    window.location.href = "/docket/user/login";
+  };
 
   const value = {
     currentUser,
-    logout,
     loading,
-    profile,
-    companyInfo,
     error,
-    customerlogin,
-    iscoustomerLogin,
-    taskResponse,
-    setTaskResponse,
     SeaFoodLogin,
-  }
+    logout,
+  };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>
-}
-
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};

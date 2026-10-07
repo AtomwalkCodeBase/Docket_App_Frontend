@@ -230,7 +230,7 @@ export default function EmailTemplate() {
           setSearchingTemplate(true);
 
           const res = await getActivityEmailList({
-              template_name: formData.name.trim(),
+              template_name: formData.name,
           });
 
           const record = (res.data || [])[0];

@@ -3,8 +3,8 @@
 */
 
 .page {
-  --dm-accent: #2563eb;
-  --dm-accent-soft: #eef3ff;
+  --dm-accent: var(--rf-brass, #a9762f);
+  --dm-accent-soft: var(--rf-brass-soft, #f1e4cc);
   --dm-text: #1f2430;
   --dm-text-muted: #6b7280;
   --dm-border: #e5e7eb;
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #2563eb;
+  background: var(--rf-brass, #a9762f);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -74,7 +74,7 @@
 }
 
 .linkButton:hover {
-  background: #1d4ed8;
+  background: var(--rf-brass-dark, #8a5f22);
 }
 /* ---------------- Page shell (card wrapping the form) ---------------- */
 
@@ -130,7 +130,7 @@
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--rf-brass-dark, #8a5f22);
 }
 
 .primaryButton:disabled {
@@ -253,7 +253,7 @@
 .textarea:focus {
   outline: none;
   border-color: var(--dm-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px rgba(169, 118, 47, 0.2);
 }
 
 .textInput::placeholder,
@@ -324,7 +324,7 @@
   padding: 0 18px;
   border: none;
   border-radius: 6px;
-  background: #2563eb;
+  background: var(--rf-brass, #a9762f);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -333,7 +333,7 @@
 }
 
 .searchButton:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--rf-brass-dark, #8a5f22);
 }
 
 .searchButton:disabled {
